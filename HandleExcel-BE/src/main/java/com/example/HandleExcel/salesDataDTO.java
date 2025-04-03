@@ -1,4 +1,4 @@
 package com.example.HandleExcel;
 
-public class ExcelService {
+public class salesDataDTO {
 }

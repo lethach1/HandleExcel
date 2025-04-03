@@ -1,0 +1,150 @@
+#root {
+  width: 100%;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.app-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  min-height: 100vh;
+  background: linear-gradient(to right, #f8f9fa, #e9ecef);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .app-container {
+    padding: 10px;
+  }
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/* Custom styling for tabs */
+.ant-tabs-nav {
+  margin-bottom: 20px !important;
+  background: #fff;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ant-tabs-tab {
+  transition: all 0.3s ease;
+}
+
+.ant-tabs-tab-active {
+  background-color: #e6f7ff !important;
+  border-radius: 4px;
+}
+
+.ant-tabs-ink-bar {
+  background-color: #1890ff !important;
+  height: 3px !important;
+}
+
+/* Card styling */
+.ant-card {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  margin-bottom: 20px;
+}
+
+.ant-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.ant-card-head {
+  background-color: #fafafa;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+/* Button styling */
+.ant-btn {
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+.ant-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Button colors */
+.import-btn {
+  background-color: #52c41a;
+  border-color: #52c41a;
+  color: white;
+}
+
+.import-btn:hover {
+  background-color: #73d13d;
+  border-color: #73d13d;
+}
+
+.export-btn {
+  background-color: #722ed1;
+  border-color: #722ed1;
+  color: white;
+}
+
+.export-btn:hover {
+  background-color: #9254de;
+  border-color: #9254de;
+}
+
+/* Table styling */
+.ant-table {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.ant-table-thead > tr > th {
+  background-color: #f0f5ff;
+  color: #1890ff;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background-color: #e6f7ff;
+}
