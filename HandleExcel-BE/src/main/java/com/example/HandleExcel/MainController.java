@@ -1,10 +1,10 @@
 package com.example.HandleExcel;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
 
 @RestController
 @RequestMapping("api/v1")  // Định nghĩa URL gốc
@@ -18,9 +18,22 @@ public class MainController {
         return "Danh sách người dùng";
     }
 
-    @PostMapping("/import")
-    public String importMediumExcel() {
-        return "Danh sách người dùng";
+    @PostMapping("/upload")
+    public ResponseEntity<String> uploadSmallExcel(@ModelAttribute ExcelUploadRequest request) {
+
+        ImportOrderDTO dto;
+        try {
+            dto = ExcelService.uploadSmallExcel(request);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        ExcelDataResponse excelDataResponse = new ExcelDataResponse();
+        excelDataResponse.setType("success");
+        excelDataResponse.setMessage("インポートは処理中です。");
+        excelDataResponse.setCode(200);
+        excelDataResponse.setData(dto);
+
+        return ResponseEntity.ok("File uploaded successfully");
     }
 }
 

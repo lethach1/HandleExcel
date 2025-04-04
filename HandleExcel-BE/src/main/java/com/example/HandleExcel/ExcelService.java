@@ -4,12 +4,14 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Iterator;
+import java.io.InputStream;
 
 @Service
 public class ExcelService {
@@ -29,14 +31,25 @@ public class ExcelService {
         return workbook;
     }
 
-    public void importSmallExcel() throws IOException {
+    public static ImportOrderDTO uploadSmallExcel(ExcelUploadRequest request) throws IOException {
 
-        String excelFilePath = "Books.xlsx";
-        FileInputStream inputStream = new FileInputStream(new File(excelFilePath));
+        ImportOrderDTO dto = new ImportOrderDTO();
+        MultipartFile file = request.getFile();
+
+        InputStream inputStream = file.getInputStream();
         Workbook workbook = new XSSFWorkbook(inputStream);
+
+        if (file.getOriginalFilename().endsWith("xlsx")) {
+            workbook = new XSSFWorkbook(inputStream);
+        } else if (file.getOriginalFilename().endsWith("xls")) {
+            workbook = new HSSFWorkbook(inputStream);
+        } else {
+            throw new IllegalArgumentException("The specified file is not Excel file");
+        }
 
         DataFormatter formatter = new DataFormatter();
         Sheet sheet1 = workbook.getSheetAt(0);
+
         for (Row row : sheet1) {
             for (Cell cell : row) {
                 CellReference cellRef = new CellReference(row.getRowNum(), cell.getColumnIndex());
@@ -73,6 +86,7 @@ public class ExcelService {
         }
         workbook.close();
         inputStream.close();
+        return dto;
     }
 }
 
