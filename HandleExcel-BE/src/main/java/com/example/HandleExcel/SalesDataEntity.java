@@ -13,7 +13,7 @@ import java.math.BigDecimal;
 @Data
 @NoArgsConstructor
 @Table(name = "sales_data")
-public class SalesData {
+public class SalesDataEntity {
 
     @Id
     @Column(name = "country_code", length = 4, nullable = false)
