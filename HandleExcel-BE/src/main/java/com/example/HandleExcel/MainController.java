@@ -21,7 +21,7 @@ public class MainController {
     @PostMapping("/upload")
     public ResponseEntity<String> uploadSmallExcel(@ModelAttribute ExcelUploadRequest request) {
 
-        ImportOrderDTO dto;
+        ImportOrderStatus dto;
         try {
             dto = ExcelService.uploadSmallExcel(request);
         } catch (IOException e) {

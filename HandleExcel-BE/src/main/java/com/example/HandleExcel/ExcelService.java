@@ -4,18 +4,12 @@ import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.ss.util.CellReference;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 import static com.example.HandleExcel.DateUtils.formateDate;
@@ -23,35 +17,20 @@ import static com.example.HandleExcel.DateUtils.formateDate;
 @Service
 public class ExcelService {
 
-    private Workbook getWorkbook(FileInputStream inputStream, String excelFilePath)
-            throws IOException {
-        Workbook workbook = null;
+    public static ImportOrderStatus uploadSmallExcel(ExcelUploadRequest request) throws IOException {
 
-        if (excelFilePath.endsWith("xlsx")) {
-            workbook = new XSSFWorkbook(inputStream);
-        } else if (excelFilePath.endsWith("xls")) {
-            workbook = new HSSFWorkbook(inputStream);
-        } else {
-            throw new IllegalArgumentException("The specified file is not Excel file");
-        }
-
-        return workbook;
-    }
-
-    public static ImportOrderDTO uploadSmallExcel(ExcelUploadRequest request) throws IOException {
-
-        ImportOrderDTO dto = new ImportOrderDTO();
+        ImportOrderStatus dto = new ImportOrderStatus();
         SalesDataDTO salesDataDTO = new SalesDataDTO();
         List<SalesDataDTO> listDataDTO = new ArrayList<>();
         Map<String, String> mapStoreCode = new HashMap<>();
 
         boolean foundStoreCode = false;
         boolean hasFirstImportLine = false;
+        Errors errors = new Errors();
 
         MultipartFile file = request.getFile();
-
         InputStream inputStream = file.getInputStream();
-        Workbook workbook = new XSSFWorkbook(inputStream);
+        Workbook workbook = null;
 
         if (file.getOriginalFilename().endsWith("xlsx")) {
             workbook = new XSSFWorkbook(inputStream);
@@ -61,20 +40,49 @@ public class ExcelService {
             throw new IllegalArgumentException("The specified file is not Excel file");
         }
 
+        // Create FormulaEvaluator formulas in Workbook
+        FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
         DataFormatter formatter = new DataFormatter();
-        Sheet sheet1 = workbook.getSheetAt(0);
+        Sheet sheet1 = workbook.getSheetAt(0);                // Get the first sheet
+
+        int sheetCount = workbook.getNumberOfSheets();
+        if (sheetCount == 0) {
+            // No sheet exists in the workbook
+            errors.setErrorFlg(true);
+            // Error message appended
+            errors.setErrorMessage(ActionMessages.GLOBAL_MESSAGE);
+            return dto;
+        }
+
+        // Check exist sheet name Budget
+        boolean isExistSheetNameBudget = false;
+        // Check exist sheet name Budget
+        boolean isExistSheetNameSales = false;
+        // Check exist sheet name Budget
+        boolean isExistSheetNameTC = false;
+
+        for(int i = 0; i < sheetCount; i++){
+            Sheet sheet = workbook.getSheetAt(i);
+            String sheetName = sheet.getSheetName();
+
+            // Remove spaces at the beginning and end of sheet name
+            sheetName = CommonLogic.trimSheetName(sheetName);
+
+            // To normalize sheet names by converting full-size characters to half-size
+            sheetName = CommonLogic.convertToHalfSize(sheetName);
+        }
+
+        if (CommonLogic.PLAN_RESULT_FLAG.equals(request.getPlanFlag())){
+
+        };
 
         for (Row row : sheet1) {
             if (row.getRowNum() == 0) continue;                 // Skip the first row which is the number column
             if (isEmptyRow(row)) continue;                      // Skip the Empty row
 
-            if(!foundStoreCode)
-
-
-
-
-
-
+            if(!foundStoreCode){
+                foundStoreCode = isStoreCodeRow(row, evaluator);
+            }
 
             for (Cell cell : row) {
                 CellReference cellRef = new CellReference(row.getRowNum(), cell.getColumnIndex());

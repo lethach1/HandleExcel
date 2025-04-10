@@ -11,7 +11,7 @@ import java.util.List;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class ImportOrderDTO {
+public class ImportOrderStatus {
     private int numberOfProcess;
     private int numberOfUpdate;
     private int numberOfInsert;
