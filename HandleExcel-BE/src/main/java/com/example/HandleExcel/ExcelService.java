@@ -22,10 +22,8 @@ public class ExcelService {
         ImportOrderStatus dto = new ImportOrderStatus();
         SalesDataDTO salesDataDTO = new SalesDataDTO();
         List<SalesDataDTO> listDataDTO = new ArrayList<>();
-        Map<String, String> mapStoreCode = new HashMap<>();
 
-        boolean foundStoreCode = false;
-        boolean hasFirstImportLine = false;
+
         Errors errors = new Errors();
 
         MultipartFile file = request.getFile();
@@ -42,8 +40,13 @@ public class ExcelService {
 
         // Create FormulaEvaluator formulas in Workbook
         FormulaEvaluator evaluator = workbook.getCreationHelper().createFormulaEvaluator();
-        DataFormatter formatter = new DataFormatter();
-        Sheet sheet1 = workbook.getSheetAt(0);                // Get the first sheet
+
+        // Check exist sheet name Budget
+        boolean isExistSheetNameBudget = false;
+        // Check exist sheet name Sales
+        boolean isExistSheetNameSales = false;
+        // Check exist sheet name TC
+        boolean isExistSheetNameTC = false;
 
         int sheetCount = workbook.getNumberOfSheets();
         if (sheetCount == 0) {
@@ -54,13 +57,7 @@ public class ExcelService {
             return dto;
         }
 
-        // Check exist sheet name Budget
-        boolean isExistSheetNameBudget = false;
-        // Check exist sheet name Budget
-        boolean isExistSheetNameSales = false;
-        // Check exist sheet name Budget
-        boolean isExistSheetNameTC = false;
-
+        // Read sheet list in file excel
         for(int i = 0; i < sheetCount; i++){
             Sheet sheet = workbook.getSheetAt(i);
             String sheetName = sheet.getSheetName();
@@ -70,28 +67,53 @@ public class ExcelService {
 
             // To normalize sheet names by converting full-size characters to half-size
             sheetName = CommonLogic.convertToHalfSize(sheetName);
+
+            //Plan result flag -> only read sheet Sales
+            if (CommonLogic.PLAN_RESULT_FLAG.equals(request.getPlanFlag())
+                    && CommonLogic.validateSheetName(sheetName, CommonLogic.SUFFIX_BUDGET)) {
+                isExistSheetNameBudget = true;
+                listDataDTO = getListFromExcel();
+                return dto;
+            };
+
+            // Actual result flag -> read sheet Sales and TC
+            if(CommonLogic.PLAN_RESULT_FLAG.equals(request.getPlanFlag()){
+                if (CommonLogic.validateSheetName(sheetName, CommonLogic.SUFFIX_SALES)) {
+                    isExistSheetNameSales = true;
+                }
+                if (CommonLogic.validateSheetName(sheetName, CommonLogic.SUFFIX_TC)){
+                    isExistSheetNameSales = true;
+
+                }
+            }
         }
 
-        if (CommonLogic.PLAN_RESULT_FLAG.equals(request.getPlanFlag())){
+        workbook.close();
+        inputStream.close();
 
-        };
+        return dto;
+    }
 
-        for (Row row : sheet1) {
+    public static List<SalesDataDTO> getListFromExcel(Sheet sheet, FormulaEvaluator evaluator, Errors errors) {
+
+        boolean foundStoreCode = false;
+        boolean hasFirstImportLine = false;
+        Map<String, String> mapStoreCode = new HashMap<>();
+
+        for (Row row : sheet) {
             if (row.getRowNum() == 0) continue;                 // Skip the first row which is the number column
             if (isEmptyRow(row)) continue;                      // Skip the Empty row
 
+            // if found Store Code row, read all Store Code data
             if(!foundStoreCode){
                 foundStoreCode = isStoreCodeRow(row, evaluator);
+                if (!foundStoreCode) continue;
             }
 
+            // Iterate through each cell in the row
             for (Cell cell : row) {
                 CellReference cellRef = new CellReference(row.getRowNum(), cell.getColumnIndex());
-                System.out.print(cellRef.formatAsString());
-                System.out.print(" - ");
-                // get the text that appears in the cell by getting the cell value and applying any data formats (Date, 0.00, 1.23e9, $1.23, etc)
-                String text = formatter.formatCellValue(cell);
-                System.out.println(text);
-                // Alternatively, get the value and format it yourself
+
                 switch (cell.getCellType()) {
                     case CellType.STRING:
                         System.out.println(cell.getRichStringCellValue().getString());
@@ -117,10 +139,11 @@ public class ExcelService {
                 }
             }
         }
-        workbook.close();
-        inputStream.close();
-        return dto;
+
     }
+
+
+
 
     private static boolean isEmptyRow(Row row){
         if(row == null) return true;
@@ -131,6 +154,8 @@ public class ExcelService {
         }
         return true;
     }
+
+    //check if the cell is storeCode
     private static boolean isStoreCodeRow(Row row, FormulaEvaluator evaluator){
         Cell cell = row.getCell(Integer.parseInt(CommonLogic.START_COLUMN)-1);
         if(cell == null) return false;
