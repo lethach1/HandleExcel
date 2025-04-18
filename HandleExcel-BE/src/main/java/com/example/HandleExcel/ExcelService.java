@@ -96,48 +96,52 @@ public class ExcelService {
 
     public static List<SalesDataDTO> getListFromExcel(Sheet sheet, FormulaEvaluator evaluator, Errors errors) {
 
-        boolean foundStoreCode = false;
         boolean hasFirstImportLine = false;
         Map<String, String> mapStoreCode = new HashMap<>();
 
-        for (Row row : sheet) {
-            if (row.getRowNum() == 0) continue;                 // Skip the first row which is the number column
+        int endRow = Integer.parseInt(CommonLogic.END_ROW);
+
+        for(int rowIndex = 0; rowIndex < endRow; rowIndex++){
+            if (rowIndex == 0) continue;                 // Skip the first row which is the number column
+            Row row = sheet.getRow(rowIndex);
             if (isEmptyRow(row)) continue;                      // Skip the Empty row
 
             // if found Store Code row, read all Store Code data
-            if(!foundStoreCode){
-                foundStoreCode = isStoreCodeRow(row, evaluator);
-                if (!foundStoreCode) continue;
-            }
+            boolean foundStoreCode = isStoreCodeRow(row, evaluator);
+            if(foundStoreCode){
+                // Iterate through each cell in the row
+                for (int cellIndex = Integer.parseInt(CommonLogic.START_COLUMN) - 1;
+                     cellIndex < Integer.parseInt(CommonLogic.END_COLUMN); cellIndex++) {
 
-            // Iterate through each cell in the row
-            for (Cell cell : row) {
-                CellReference cellRef = new CellReference(row.getRowNum(), cell.getColumnIndex());
+                    int rowNum = rowIndex + 1;
+                    int colNum = cellIndex + 1;
+                    String errPrefix = " [row " + rowNum + "] " + " [col " + colNum + "] ";
 
-                switch (cell.getCellType()) {
-                    case CellType.STRING:
-                        System.out.println(cell.getRichStringCellValue().getString());
-                        break;
-                    case CellType.NUMERIC:
-                        if (DateUtil.isCellDateFormatted(cell)) {
-                            System.out.println(cell.getDateCellValue());
-                        } else {
-                            System.out.println(cell.getNumericCellValue());
-                        }
-                        break;
-                    case CellType.BOOLEAN:
-                        System.out.println(cell.getBooleanCellValue());
-                        break;
-                    case CellType.FORMULA:
-                        System.out.println(cell.getCellFormula());
-                        break;
-                    case CellType.BLANK:
-                        System.out.println();
-                        break;
-                    default:
-                        System.out.println();
+                    Cell cell = row.getCell(cellIndex);
+
+                    //Get value from cell
+                    String cellValue = "";
+                    if (cell != null) {
+                        cellValue = getCellValue(cell, evaluator, false);
+                    }
+
+                    if (cellValue.isEmpty()) {
+                        // Skip empty cell
+                        continue;
+                    }
+
+                    mapStoreCode.put(String.valueOf(cellIndex + 1), cellValue);
                 }
             }
+
+            if(foundStoreCode && !hasFirstImportLine){
+                if(isDataLine(row, evaluator)){
+
+                }
+
+            }
+
+
         }
 
     }
@@ -161,6 +165,12 @@ public class ExcelService {
         if(cell == null) return false;
         String value = getCellValue(cell, evaluator, false);
         return !value.isEmpty();    //check if the cell is not empty -> this is storeCode
+    }
+
+    private boolean isDataLine(Row row, FormulaEvaluator evaluator){
+        Cell cell = row.getCell(Integer.parseInt(CommonLogic.STD_DATE_COLUMN) - 1);
+        if (CheckUtil.isNull(cell)) return false;
+        return HSSFDateUtil.isCellDateFormatted(cell);
     }
 
     private static String getCellValue(Cell cell, FormulaEvaluator evaluator, boolean isDate){

@@ -4,7 +4,6 @@ import lombok.Getter;
 
 @Getter
 public class CommonLogic {
-    public static final String START_COLUMN = "3";
 
     public static final String FORMAT_DATE_YYYYMMDD = "yyyyMMdd";
 
@@ -15,6 +14,12 @@ public class CommonLogic {
     public static final String SUFFIX_SALES = "Sales";
 
     public static final String SUFFIX_TC = "TC";
+
+    public static final String END_ROW = "400";
+
+    public static final String START_COLUMN = "3";
+
+    public static String END_COLUMN = "61";
 
 
     public static String trimSheetName(String sheetname){
