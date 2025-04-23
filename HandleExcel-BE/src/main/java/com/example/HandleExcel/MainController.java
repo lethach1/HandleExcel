@@ -23,7 +23,7 @@ public class MainController {
 
         ImportOrderStatus dto;
         try {
-            dto = ExcelService.uploadSmallExcel(request);
+            dto = excelService.uploadSmallExcel(request);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

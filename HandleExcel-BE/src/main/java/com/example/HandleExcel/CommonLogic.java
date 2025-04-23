@@ -2,6 +2,11 @@ package com.example.HandleExcel;
 
 import lombok.Getter;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
+import java.time.format.ResolverStyle;
+
 @Getter
 public class CommonLogic {
 
@@ -20,6 +25,11 @@ public class CommonLogic {
     public static final String START_COLUMN = "3";
 
     public static String END_COLUMN = "61";
+
+    /** Column A (1): Business Date **/
+    public static String DATE_COLUMN = "1";
+
+    public static int MAX_NUMBER_OF_DAYS_PER_YEAR = 366;
 
 
     public static String trimSheetName(String sheetname){
@@ -58,5 +68,20 @@ public class CommonLogic {
 
         // Check if sheetName does not match the required format
         return sheetName.matches(regex);
+    }
+
+
+    public static boolean isValidDate(String dateStr, String formatDate) {
+        if (dateStr == null ||dateStr.isEmpty()) return false;
+
+        // Defines the date format to check
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(formatDate)
+                .withResolverStyle(ResolverStyle.STRICT); // not allow invalid date (eg: 2024-02-30)
+        try {
+            LocalDate.parse(dateStr, formatter);
+            return true;
+        } catch (DateTimeParseException e) {
+            return false;
+        }
     }
 }
