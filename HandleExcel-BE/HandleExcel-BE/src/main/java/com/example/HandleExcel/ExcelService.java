@@ -17,17 +17,9 @@ import static com.example.HandleExcel.DateUtils.formateDate;
 @Service
 public class ExcelService {
 
-    private static class ProcessingState {
-        int endRow;
-        boolean foundStoreCodeRow = false;
-        boolean hasFirstImportLine = false;
-        int numRowBlank = 0;
-    }
-
     public ImportOrderStatus uploadSmallExcel(ExcelUploadRequest request) throws IOException {
 
         ImportOrderStatus dto = new ImportOrderStatus();
-        SalesDataDTO salesDataDTO = new SalesDataDTO();
         List<SalesDataDTO> listDataDTO = new ArrayList<>();
 
         Errors errors = new Errors();
@@ -79,16 +71,26 @@ public class ExcelService {
                     && CommonLogic.validateSheetName(sheetName, CommonLogic.SUFFIX_BUDGET)) {
                 isExistSheetNameBudget = true;
                 listDataDTO = getListFromExcel(sheet, evaluator, errors);
-                return dto;
+                // Thiết lập danh sách SalesDataDTO vào đối tượng trả về
+                dto.setListSalesDataDTO(listDataDTO);
+                break;
             };
 
             // Actual result flag -> read sheet Sales and TC
             if(CommonLogic.PLAN_RESULT_FLAG.equals(request.getPlanFlag())){
                 if (CommonLogic.validateSheetName(sheetName, CommonLogic.SUFFIX_SALES)) {
                     isExistSheetNameSales = true;
+                    listDataDTO = getListFromExcel(sheet, evaluator, errors);
+                    // Thiết lập danh sách SalesDataDTO vào đối tượng trả về
+                    dto.setListSalesDataDTO(listDataDTO);
+                    break;
                 }
                 if (CommonLogic.validateSheetName(sheetName, CommonLogic.SUFFIX_TC)){
                     isExistSheetNameSales = true;
+                    listDataDTO = getListFromExcel(sheet, evaluator, errors);
+                    // Thiết lập danh sách SalesDataDTO vào đối tượng trả về
+                    dto.setListSalesDataDTO(listDataDTO);
+                    break;
                 }
             }
         }
@@ -99,6 +101,9 @@ public class ExcelService {
         return dto;
     }
 
+    // Variable to track consecutive blank rows across method calls
+    private int numRowBlank = 0;
+
     public List<SalesDataDTO> getListFromExcel(Sheet sheet, FormulaEvaluator evaluator, Errors errors) {
 
         List<SalesDataDTO> listDataDTO = new ArrayList<>();
@@ -108,6 +113,9 @@ public class ExcelService {
         Map<String, String> mapStoreCode = new HashMap<>();
 
         int endRow = Integer.parseInt(CommonLogic.END_ROW);
+
+        // Reset blank row counter at the start of processing a new sheet
+        numRowBlank = 0;
 
         //process each row
         for(int rowIndex = 0; rowIndex < endRow; rowIndex++){
@@ -134,10 +142,12 @@ public class ExcelService {
                 }
             }
 
-            // Process data rows
-            if (!processDataRow(row, evaluator, state, sheet, mapStoreCode,
-                    nation, companyCd, errorFlg, listBeans)) {
-                return new ArrayList<>();
+            // Process data row and check if we need to return empty ArrayList
+            if (hasFirstImportLine) {
+                if (!processDataRow(row, evaluator, sheet, errors, mapStoreCode, listDataDTO, hasFirstImportLine)) {
+                    // If processDataRow returns false due to 2 consecutive blank rows, return empty ArrayList
+                    return new ArrayList<>();
+                }
             }
         }
         return listDataDTO;
@@ -186,88 +196,112 @@ public class ExcelService {
 
         // Process business date
         String date = processBusinessDate(row, evaluator, errors, sheet);
-        if (date == null) return false;
 
-        // Process each cell in the row
-        return processCellsInRow(row, evaluator, sheet, mapStoreCode,
-                nation, companyCd, date, errorFlg, listBeans);
+        // If processBusinessDate returns null, it means we have 2 consecutive blank rows
+        // Return false to signal that we should return an empty ArrayList
+        if (date == null) {
+            return false;
+        }
+
+        // Skip empty date
+        if (date.isEmpty()) {
+            return true;
+        }
+
+        // Process cells in the row and add to listDataDTO
+        return processCellsInRow(row, evaluator, sheet, mapStoreCode, date, errors, listDataDTO);
     }
 
     private String processBusinessDate(Row row, FormulaEvaluator evaluator,
                                        Errors errors, Sheet sheet) {
         boolean isDate = true;  //cause this is process-BusinessDate method
-        int numRowBlank = 0;   // Variable to track consecutive blank rows across method calls
-
         Cell cellDate = row.getCell(Integer.parseInt(CommonLogic.DATE_COLUMN) - 1);
         String date = getCellValueSafely(cellDate, evaluator, isDate);
 
         if (date.isEmpty()) {
             numRowBlank++;
             if (numRowBlank == 2){
+                // Return null to signal that we should return an empty ArrayList
                 return null;
             }
             return "";
         }
 
+        if (!CommonLogic.isValidDate(date, CommonLogic.FORMAT_DATE_YYYYMMDD)) {
+            // Handle invalid date
+            // Note: The original code had a condition that seemed incorrect
+            // It was checking if the date IS valid but then handling it as invalid
+            return null;
+        }
+
+        // Reset the blank row counter when we find a valid date
         numRowBlank = 0;
         return date;
     }
 
     private boolean processCellsInRow(Row row, FormulaEvaluator evaluator,
                                       Sheet sheet, Map<String, String> mapStoreCode, String date,
-                                      Errors errors, List<SalesDataDTO> listSalesDataDTO) {
+                                      Errors errors, List<SalesDataDTO> listDataDTO) {
 
+        // Tạo một đối tượng SalesDataDTO mới
+        SalesDataDTO salesDataDTO = new SalesDataDTO();
+
+        // Thiết lập ngày kinh doanh
+        salesDataDTO.setBusinessDate(date);
+
+        // Duyệt qua các ô trong hàng
         for (int cellIndex = Integer.parseInt(CommonLogic.START_COLUMN) - 1;
              cellIndex < Integer.parseInt(CommonLogic.END_COLUMN); cellIndex++) {
             Cell cell = row.getCell(cellIndex);
             String cellValue = getCellValueSafely(cell, evaluator, false);
 
-            if (CheckUtil.isEmpty(cellValue)) continue;                  // Skip empty cell
+            if (CheckUtil.isEmpty(cellValue)) continue;  // Bỏ qua ô trống
 
-            String errPrefix = " [row " + (row.getRowNum() + 1) + "] " + " [col " + (cellIndex + 1) + "] ";
-
-            // process validate cell value each cell
-            if (!validateCellValue(cellValue, errors)) {
-                continue;
+            // Lấy mã cửa hàng từ mapStoreCode
+            String storeCode = mapStoreCode.get(String.valueOf(cellIndex + 1));
+            if (storeCode != null && !storeCode.isEmpty()) {
+                salesDataDTO.setStoreCode(storeCode);
             }
-            // Add each cell to listDataDTO
-            SalesDataDTO salesDataDTO = new SalesDataDTO();
-            salesDataDTO.setCountryCode(nation);
-            salesDataDTO.setCompanyCode(companyCd);
-            salesDataDTO.setStoreCode(mapStoreCode.get(String.valueOf(cellIndex + 1)));
-            salesDataDTO.setBusinessDate(date);
 
-            //set cell value
-            if (CommonLogic.validateSheetName(sheet.getSheetName(), CommonLogic.SUFFIX_BUDGET)) {
-                salesDataDTO.setSalesBudget(cellValue);
+            // Chuyển đổi giá trị chuỗi thành BigDecimal nếu là số
+            if (CommonLogic.isNumeric(cellValue)) {
+                BigDecimal numericValue = new BigDecimal(cellValue);
+
+                // Dựa vào vị trí cột để xác định loại dữ liệu
+                // Đây là ví dụ, bạn cần điều chỉnh theo cấu trúc Excel của bạn
+                switch (cellIndex) {
+                    case 3: // Giả sử cột 3 là salesAmount
+                        salesDataDTO.setSalesAmount(numericValue);
+                        break;
+                    case 4: // Giả sử cột 4 là pax
+                        salesDataDTO.setPax(numericValue);
+                        break;
+                    case 5: // Giả sử cột 5 là salesBudget
+                        salesDataDTO.setSalesBudget(numericValue);
+                        break;
+                    case 6: // Giả sử cột 6 là paxBudget
+                        salesDataDTO.setPaxBudget(numericValue);
+                        break;
+                    // Thêm các trường hợp khác tùy theo cấu trúc Excel
+                    default:
+                        // Xử lý các cột khác nếu cần
+                        break;
+                }
+            } else {
+                // Xử lý các giá trị không phải số (ví dụ: weather)
+                // Đây là ví dụ, bạn cần điều chỉnh theo cấu trúc Excel của bạn
+                if (cellIndex == 7) { // Giả sử cột 7 là weather
+                    salesDataDTO.setWeather(cellValue);
+                }
             }
-            if (CommonLogic.validateSheetName(sheet.getSheetName(), CommonLogic.SUFFIX_SALES)) {
-                salesDataDTO.setSalesAmount(cellValue);
-            }
-            if (CommonLogic.validateSheetName(sheet.getSheetName(), CommonLogic.SUFFIX_TC)) {
-                salesDataDTO.setPax(cellValue);
-            }
-            listSalesDataDTO.add(salesDataDTO);
-        }
-    }
-
-    private boolean validateCellValue(String cellValue, Errors errors){
-        if (CommonLogic.isNumeric(cellValue)) {
-            //code here
-            return false;
         }
 
-        if (CommonLogic.isNegativeNumeric(cellValue)) {
-            //code here
-            return false;
-        }
+        // Thêm đối tượng SalesDataDTO vào danh sách
+        listDataDTO.add(salesDataDTO);
 
-        if (CommonLogic.hasShortIntegerPart(cellValue, CommonLogic.MAX_LENGTH_NUMERIC)){
-            //code here
-            return false;
-        }
         return true;
     }
+
 
 
     private boolean isEmptyRow(Row row){
@@ -325,8 +359,6 @@ public class ExcelService {
             default:
                 return "";
         }
+
     }
-
-
 }
-

@@ -31,6 +31,44 @@ public class CommonLogic {
 
     public static int MAX_NUMBER_OF_DAYS_PER_YEAR = 366;
 
+    public static final int MAX_LENGTH_NUMERIC = 12;
+
+    public static boolean isNumeric(String str) {
+        if (CheckUtil.isEmpty(str)) {
+            return false;
+        }
+        try {
+            // Try converting the string to a double
+            Double.parseDouble(str);
+            return true;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+
+    public static boolean isNegativeNumeric(String str) {
+        if (CheckUtil.isEmpty(str)) {
+            return false;
+        }
+
+        try {
+            // Convert string to double
+            double number = Double.parseDouble(str);
+            // Check if number is less than 0
+            return number < 0;
+        } catch (NumberFormatException e) {
+            return false;
+        }
+    }
+/** Check if the integer part of the number has a maximum of 12 characters **/
+    public static boolean hasShortIntegerPart(String str, int maxLength) {
+        if (CheckUtil.isEmpty(str) || maxLength <= 0) return false;
+        if (!isNumeric(str)) return false;
+
+        String integerPart = str.split("[\\.,]")[0].replaceFirst("^-", "");
+        return integerPart.length() <= maxLength;
+    }
+
 
     public static String trimSheetName(String sheetname){
       if(sheetname == null) return null;
@@ -60,7 +98,7 @@ public class CommonLogic {
 
     public static boolean validateSheetName(String sheetName, String suffix){
         // Check if sheetName or suffix is empty
-        if (sheetName.isEmpty() || suffix.isEmpty()) {
+        if (CheckUtil.isEmpty(sheetName) || CheckUtil.isEmpty(suffix)) {
             return false;
         }
         // Regular expression to check year from 2000 to 3000 and valid keyword
@@ -72,7 +110,7 @@ public class CommonLogic {
 
 
     public static boolean isValidDate(String dateStr, String formatDate) {
-        if (dateStr == null ||dateStr.isEmpty()) return false;
+        if (dateStr == null |CheckUtil.isEmpty(dateStr)) return false;
 
         // Defines the date format to check
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern(formatDate)
