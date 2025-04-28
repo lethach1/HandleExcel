@@ -1,5 +1,6 @@
-package com.example.HandleExcel;
+package com.example.HandleExcel.DTO;
 
+import com.example.HandleExcel.Errors;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -12,13 +13,8 @@ import java.util.List;
 @AllArgsConstructor
 @NoArgsConstructor
 public class ImportOrderStatus {
-    private int numberOfProcess;
-    private int numberOfUpdate;
-    private int numberOfInsert;
-    private int numberOfError;
-    private int numberOfWarning;
     private List<String> errorLine;
-    private List<String> warningLine;
+    private Errors errors;
     private int status;
-    private Long idQueue;
+    private List<SalesDataDTO> listSalesDataDTO;
 }

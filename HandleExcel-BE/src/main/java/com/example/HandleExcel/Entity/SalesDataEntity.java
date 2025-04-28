@@ -1,4 +1,4 @@
-package com.example.HandleExcel;
+package com.example.HandleExcel.Entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

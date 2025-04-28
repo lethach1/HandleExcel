@@ -1,4 +1,4 @@
-package com.example.HandleExcel;
+package com.example.HandleExcel.DTO;
 
 import lombok.Getter;
 import lombok.Setter;
